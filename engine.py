@@ -194,13 +194,15 @@ class GameState:
                 "escaped": "You made it out.",
                 "dead": "You died down there.",
                 "abandoned": "You hung up on it.",
+                "quit": "You called it.",
             }.get(self.outcome, "")
 
         room = self._room()
         blind = room.dark and not self.has_light
 
         # In the dark you may only feel your way out, or produce a light.
-        if blind and verb not in ("go", "back", "look", "inventory", "status", "help", "take"):
+        if blind and verb not in ("go", "back", "quit", "look", "inventory", "status",
+                                  "help", "take"):
             return self._grue()
 
         handler = getattr(self, f"_do_{verb}", None)
@@ -297,6 +299,17 @@ class GameState:
         return ("It is pitch black and you cannot see what you are doing. "
                 "Get out, or find a light, quickly.")
 
+    def stop(self):
+        """The player called it themselves, rather than being cut off."""
+        if not self.alive:
+            return "Your run is already over."
+        self.outcome = "quit"
+        self.ended_at = time.time()
+        self._record_path()
+        return (f"You turn back, and the dark closes up behind you. Your run ends in "
+                f"{the(self._room().name)} after {int(self.elapsed)} seconds, "
+                f"with a score of {self.score()}.")
+
     def abandon(self):
         """The player hung up. Freeze the run where it stands."""
         if not self.alive:
@@ -386,6 +399,9 @@ class GameState:
             if other == previous:
                 return self._do_go(direction)
         return "You cannot get back that way."
+
+    def _do_quit(self, noun=None, target=None):
+        return self.stop()
 
     def _do_look(self, noun=None, target=None):
         return self.describe_room(force_full=True)

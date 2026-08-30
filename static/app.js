@@ -399,6 +399,8 @@ function renderRail() {
               `Call back to try once more.`,
         abandoned: `You hung up in ${the(game.room_name)} after ${clock(game.elapsed)}. ` +
                    `The run is on the board. Call back to start a new one.`,
+        quit: `You called it in ${the(game.room_name)} after ${clock(game.elapsed)}, ` +
+              `with ${game.score} points. Call back to go down again.`,
       }[game.outcome];
     } else {
       verdict.hidden = true;
@@ -472,6 +474,7 @@ function renderRuns() {
       escaped: '<span class="badge">escaped with the crown</span>',
       dead: `died in ${the(run.deepest_room_name)}`,
       abandoned: `hung up in ${the(run.deepest_room_name)}`,
+      quit: `gave up in ${the(run.deepest_room_name)}`,
     }[run.outcome] || `stopped in ${the(run.deepest_room_name)}`;
     row.querySelector(".depth b").style.width =
       `${Math.round((run.rooms / totalRooms) * 100)}%`;

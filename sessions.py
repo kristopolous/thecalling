@@ -42,6 +42,7 @@ class Session:
         self.game = None
         self.transcript = []        # [{"who": "player"|"dungeon", "text": ..., "t": ...}]
         self.narrator = None        # set while a call is up: speak an unprompted line
+        self.ender = None           # set while a call is up: say a last line, then hang up
         self.turn = threading.Lock()  # the caller and the Wanderer both move the world
         self._subscribers = []
         self._lock = threading.Lock()
@@ -63,6 +64,7 @@ class Session:
     def unbind_call(self):
         self.call_id = None
         self.narrator = None
+        self.ender = None
         self.touched = time.time()
 
     @property

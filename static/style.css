@@ -478,6 +478,7 @@ h2 {
 .verdict.escaped { color: var(--moss); }
 .verdict.dead { color: var(--blood); }
 .verdict.abandoned { color: var(--dim); }
+.verdict.quit { color: var(--dim); }
 .verdict[hidden] { display: none; }
 
 /* ------------------------------------------------- previous runs dashboard */

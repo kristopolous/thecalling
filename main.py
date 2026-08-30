@@ -123,7 +123,9 @@ def handle_text(session, text):
         return ("I did not follow that. Try something like: go north, take the sword, look, "
                 "or what am I carrying.")
     narration = run_command(session, command, spoken_as=text.strip())
-    if session.narrator:
+    if command[0] == "quit" and session.ender:
+        session.ender(narration)          # last word, then the line goes down
+    elif session.narrator:
         # A call is up: read the result down the line too, so typing and talking
         # drive the same run rather than diverging.
         session.narrator(narration)
@@ -215,7 +217,8 @@ def begin(call: guava.Call, session):
     call.add_info("how_to_play", {
         "commands": ["go north", "go south", "go east", "go west", "look", "what am I carrying",
                      "take the sword", "drop the crown", "examine the statue",
-                     "attack the skeleton", "open the sarcophagus", "go back", "play again"],
+                     "attack the skeleton", "open the sarcophagus", "go back", "play again",
+                     "stop", "end"],
         "the_wanderer": ("A ghost wanders the dungeon on its own. It walks through locked doors. "
                          "If it touches the player it throws them somewhere else entirely. "
                          "The player may hear it dragging in the next room."),
@@ -224,6 +227,8 @@ def begin(call: guava.Call, session):
         "goal": "Find the Crown of Kaldrath and carry it back out through the Entrance Hall.",
     })
     session.narrator = lambda text: narrate(call, text)
+    session.ender = lambda text: call.hangup(
+        f'Read this to the player word for word, then end the call: "{text}"')
     call.set_persona(agent_purpose=NARRATION_RULES)
     call.send_instruction(NARRATION_RULES)
 
@@ -277,6 +282,10 @@ def on_action(call: guava.Call, action_key: str):
         return None
 
     text = run_command(session, (verb, noun or None, target or None))
+    if verb == "quit":
+        # Saying "stop" or "end" finishes the run and puts the phone down with it.
+        call.hangup(f'Read this to the player word for word, then end the call: "{text}"')
+        return None
     narrate(call, text)
     return None
 

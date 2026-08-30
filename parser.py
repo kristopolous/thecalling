@@ -37,6 +37,8 @@ VERBS = {
     "use": ("use", "apply", "try"),
     "wait": ("wait", "rest", "pause", "stay"),
     "back": ("go back", "back up", "backtrack", "retreat", "turn around", "way i came"),
+    "quit": ("quit", "stop", "end", "give up", "hang up", "goodbye", "bye", "abandon",
+             "surrender", "i'm done", "im done", "i am done", "that's enough", "thats enough"),
     "search": ("search", "loot", "rummage", "feel"),
     "status": ("status", "score", "health", "how am i", "doing"),
     "help": ("help", "commands", "hint", "instructions", "stuck"),
@@ -143,8 +145,8 @@ def parse(text):
             return ("examine", nouns[0], None)
         return None
 
-    if verb == "back":
-        return ("back", None, None)
+    if verb in ("back", "quit"):
+        return (verb, None, None)
 
     if verb == "go":
         if direction:
