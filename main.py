@@ -122,7 +122,12 @@ def handle_text(session, text):
     if command is None:
         return ("I did not follow that. Try something like: go north, take the sword, look, "
                 "or what am I carrying.")
-    return run_command(session, command, spoken_as=text.strip())
+    narration = run_command(session, command, spoken_as=text.strip())
+    if session.narrator:
+        # A call is up: read the result down the line too, so typing and talking
+        # drive the same run rather than diverging.
+        session.narrator(narration)
+    return narration
 
 
 def narrate(call, text):
