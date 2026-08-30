@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Calling!</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+
+  <aside class="runs">
+    <div class="runs-head">
+      <h2>Previous runs</h2>
+      <div class="runs-stats" id="runs-stats">Nobody yet</div>
+    </div>
+    <div class="runs-list" id="runs-list">
+      <p class="runs-empty">No one has come back up from the vault. The board is yours to open.</p>
+    </div>
+    <div class="runs-foot">
+      Filled markers have a trail on the map. Hover a run to pick it out.
+    </div>
+  </aside>
+
+  <div class="stage">
+    <header>
+      <h1>The Calling<em>!</em></h1>
+      <span class="tagline">the vault of kaldrath &middot; by telephone</span>
+    </header>
+    <div class="map-wrap">
+      <svg class="map" id="map" role="img" aria-label="Dungeon map"></svg>
+    </div>
+    <form class="compose" id="compose" autocomplete="off">
+      <input id="cmd" placeholder="No phone handy? Type a command — go north, take the sword…">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <div class="rail">
+    <section>
+      <h2><span class="status-dot" id="dot"></span><span id="link-state">Waiting for your call</span></h2>
+      <div class="dial">
+        <div>
+          <div class="dial-number" id="number">—</div>
+          <div class="dial-hint" id="hint">Loading…</div>
+        </div>
+        <div class="dial-code" id="code">····</div>
+      </div>
+    </section>
+
+    <div class="verdict" id="verdict" hidden></div>
+
+    <section>
+      <h2>Vitals</h2>
+      <div class="vitals">
+        <div>
+          <div class="vital-label">Health</div>
+          <div class="vital-value" id="hp">—</div>
+        </div>
+        <div>
+          <div class="vital-label">Elapsed</div>
+          <div class="vital-value" id="clock">0:00</div>
+        </div>
+        <div>
+          <div class="vital-label">Score</div>
+          <div class="vital-value" id="score">0</div>
+        </div>
+      </div>
+      <div class="bar" id="hpbar"><i style="width:100%"></i></div>
+    </section>
+
+    <section>
+      <h2>Pack</h2>
+      <div class="pack" id="pack"><em>Nothing yet.</em></div>
+    </section>
+
+    <section>
+      <h2>The Call</h2>
+      <div class="log" id="log"><div class="line"><div class="dungeon">Call in to begin.</div></div></div>
+    </section>
+  </div>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

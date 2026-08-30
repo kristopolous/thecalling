@@ -1,0 +1,6 @@
+[project]
+name = "the-calling"
+version = "0.1.0"
+description = "A text adventure you play down the phone, with a live map in the browser."
+requires-python = ">=3.11"
+dependencies = ["guava-sdk>=0.40.1"]
