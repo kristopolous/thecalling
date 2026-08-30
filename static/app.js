@@ -70,6 +70,7 @@ function drawBase() {
   const w = PAD * 2 + MAP.width * PITCH - GAP;
   const h = PAD * 2 + MAP.height * PITCH - GAP;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   svg.innerHTML = "";
 
   const byKey = Object.fromEntries(MAP.rooms.map((r) => [r.key, r]));
@@ -180,8 +181,11 @@ function renderGhosts() {
     g.appendChild(make("circle", {
       cx: cx(end) + spread, cy: cy(end) + spread, r: 3.5, fill: color,
     }));
+    // Names on the last column read leftwards, or they run off the map.
+    const flip = end.x >= MAP.width - 1;
     g.appendChild(make("text", {
-      x: cx(end) + spread + 7, y: cy(end) + spread + 3,
+      x: cx(end) + spread + (flip ? -7 : 7), y: cy(end) + spread + 3,
+      "text-anchor": flip ? "end" : "start",
       class: "ghost-name", fill: color,
     }, `${ghost.name} ${clock(ghost.elapsed)}`));
     group.appendChild(g);
@@ -271,11 +275,34 @@ function renderYou(game) {
     pulse.remove();
   }
 
+  keepInView(room);
+
   let you = layer.querySelector(".you");
   if (!you) { you = make("circle", { r: 6.5, class: "you" }); layer.appendChild(you); }
   you.setAttribute("class", `you${dead ? " dead" : ""}`);
   you.setAttribute("cx", cx(room));
   you.setAttribute("cy", cy(room));
+}
+
+/* Scroll the map pane so the character stays on screen as it moves down the
+ * dungeon. Works off the rendered geometry, so it does nothing when the whole
+ * map already fits. */
+function keepInView(room) {
+  const wrap = document.querySelector(".map-wrap");
+  const ctm = svg.getScreenCTM();
+  if (!wrap || !ctm) return;
+
+  const point = new DOMPoint(cx(room), cy(room)).matrixTransform(ctm);
+  const box = wrap.getBoundingClientRect();
+  const margin = 90;
+
+  let top = 0, left = 0;
+  if (point.y > box.bottom - margin) top = point.y - (box.bottom - margin);
+  else if (point.y < box.top + margin) top = point.y - (box.top + margin);
+  if (point.x > box.right - margin) left = point.x - (box.right - margin);
+  else if (point.x < box.left + margin) left = point.x - (box.left + margin);
+
+  if (top || left) wrap.scrollBy({ top, left, behavior: "smooth" });
 }
 
 /* ------------------------------------------------------------------ the rail */
