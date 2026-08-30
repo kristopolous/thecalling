@@ -21,6 +21,9 @@ const MONSTER_GLYPHS = { skeleton: "☠", rats: "≋", spider: "✵", wight: "�
 
 const el = (id) => document.getElementById(id);
 
+/* "The Vault" already has its article; "Ossuary" needs one. */
+const the = (name) => (/^the /i.test(name || "") ? name : `the ${name}`);
+
 /* A run keeps the same colour in the list and on the map. Leaderboard order
  * assigns first, so the best runs get the front of the palette. */
 let runColors = new Map();
@@ -257,15 +260,22 @@ function renderYou(game) {
 function renderRail() {
   const game = state && state.game;
 
-  el("code").textContent = state.code || "····";
-  el("number").textContent = state.call_number || "phone line offline";
+  const claimed = Boolean(state.phone);
+  el("claim").hidden = claimed;
+  el("dial").hidden = !claimed;
   el("dot").className = `status-dot${state.connected ? " live" : ""}`;
-  el("link-state").textContent = state.connected ? "On the line" : "Waiting for your call";
-  el("hint").innerHTML = state.connected
-    ? "You are connected. Say <em>look</em> to get your bearings."
-    : (state.phone_ready
-        ? "Call that number, then say or key in the code."
-        : "The phone line is not running — play with the box below.");
+  el("link-state").textContent = state.connected
+    ? "On the line" : claimed ? "Waiting for your call" : "Not on the line";
+
+  if (claimed) {
+    el("number").textContent = state.call_number || "phone line offline";
+    el("tail").textContent = state.code;
+    el("hint").innerHTML = state.connected
+      ? "You are connected. Say <em>look</em> to get your bearings."
+      : (state.phone_ready
+          ? `from the number ending <b>${state.code}</b> — we will know it is you.`
+          : "The phone line is not running — play with the box below.");
+  }
 
   if (game) {
     el("hp").textContent = game.health;
@@ -293,9 +303,14 @@ function renderRail() {
     if (game.outcome) {
       verdict.hidden = false;
       verdict.className = `verdict ${game.outcome}`;
-      verdict.textContent = game.outcome === "escaped"
-        ? `Out alive in ${clock(game.elapsed)} with ${game.score} points. Say "play again" to go back down.`
-        : `Dead in the ${game.room_name} after ${clock(game.elapsed)}. Say "play again" to try once more.`;
+      verdict.textContent = {
+        escaped: `Out alive in ${clock(game.elapsed)} with ${game.score} points. ` +
+                 `Call back and say "play again" to go down again.`,
+        dead: `Dead in ${the(game.room_name)} after ${clock(game.elapsed)}. ` +
+              `Call back to try once more.`,
+        abandoned: `You hung up in ${the(game.room_name)} after ${clock(game.elapsed)}. ` +
+                   `The run is on the board. Call back to start a new one.`,
+      }[game.outcome];
     } else {
       verdict.hidden = true;
     }
@@ -364,9 +379,11 @@ function renderRuns() {
       <span class="depth"><i><b></b></i><span class="rooms"></span></span>`;
     row.querySelector(".who").textContent = run.name;
     row.querySelector(".time").textContent = clock(run.elapsed);
-    row.querySelector(".where").innerHTML = run.outcome === "escaped"
-      ? '<span class="badge">escaped with the crown</span>'
-      : `died in the ${run.deepest_room_name}`;
+    row.querySelector(".where").innerHTML = {
+      escaped: '<span class="badge">escaped with the crown</span>',
+      dead: `died in ${the(run.deepest_room_name)}`,
+      abandoned: `hung up in ${the(run.deepest_room_name)}`,
+    }[run.outcome] || `stopped in ${the(run.deepest_room_name)}`;
     row.querySelector(".depth b").style.width =
       `${Math.round((run.rooms / totalRooms) * 100)}%`;
     row.querySelector(".rooms").textContent = `${run.rooms}/${totalRooms}`;
@@ -405,24 +422,62 @@ async function boot() {
   MAP = await (await fetch("/api/map")).json();
   drawBase();
 
-  code = localStorage.getItem("kaldrath-code");
+  // A returning player is remembered by their phone number, so the dungeon is
+  // already theirs when the page loads.
+  const savedPhone = localStorage.getItem("kaldrath-phone");
   let bootState = null;
-  if (code) {
-    const r = await fetch(`/api/state?code=${code}`);
-    if (r.ok) bootState = await r.json();
+  if (savedPhone) {
+    bootState = await claimPhone(savedPhone, localStorage.getItem("kaldrath-name"));
   }
   if (!bootState) {
-    const fresh = await (await fetch("/api/new")).json();
-    code = fresh.code;
-    localStorage.setItem("kaldrath-code", code);
-    bootState = (await (await fetch(`/api/state?code=${code}`)).json());
+    bootState = await (await fetch("/api/new")).json();   // keyboard-only play
   }
+  code = bootState.code;
   apply(bootState);
+  listen();
+}
 
-  const events = new EventSource(`/api/events?code=${code}`);
+let events = null;
+
+function listen() {
+  if (events) events.close();
+  events = new EventSource(`/api/events?code=${code}`);
   events.onmessage = (e) => apply(JSON.parse(e.data));
   events.onerror = () => { el("dot").className = "status-dot"; };
 }
+
+async function claimPhone(phone, name) {
+  const r = await fetch("/api/claim", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, name }),
+  });
+  if (!r.ok) {
+    const note = el("claim-note");
+    note.className = "claim-note error";
+    note.textContent = (await r.json()).error || "That number was not accepted.";
+    return null;
+  }
+  localStorage.setItem("kaldrath-phone", phone);
+  if (name) localStorage.setItem("kaldrath-name", name);
+  return await r.json();
+}
+
+el("claim").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const next = await claimPhone(el("phone").value.trim(), el("who").value.trim());
+  if (!next) return;
+  code = next.code;
+  apply(next);
+  listen();
+});
+
+el("change").addEventListener("click", () => {
+  localStorage.removeItem("kaldrath-phone");
+  el("phone").value = state.phone || "";
+  el("who").value = state.player_name || "";
+  apply({ ...state, phone: null });
+});
 
 el("compose").addEventListener("submit", async (e) => {
   e.preventDefault();

@@ -38,13 +38,26 @@
 
   <div class="rail">
     <section>
-      <h2><span class="status-dot" id="dot"></span><span id="link-state">Waiting for your call</span></h2>
-      <div class="dial">
+      <h2><span class="status-dot" id="dot"></span><span id="link-state">Not on the line</span></h2>
+
+      <form class="claim" id="claim">
+        <label for="phone">Your phone number</label>
+        <input id="phone" type="tel" inputmode="tel" placeholder="+1 555 010 4477" required>
+        <label for="who">Name for the board</label>
+        <input id="who" placeholder="optional">
+        <button type="submit">Open the dungeon</button>
+        <p class="claim-note" id="claim-note">
+          We recognise you by your caller ID, so there is no code to read out.
+        </p>
+      </form>
+
+      <div class="dial" id="dial" hidden>
         <div>
+          <div class="dial-label">Call</div>
           <div class="dial-number" id="number">—</div>
-          <div class="dial-hint" id="hint">Loading…</div>
+          <div class="dial-hint" id="hint">from the number ending <b id="tail">····</b>.</div>
         </div>
-        <div class="dial-code" id="code">····</div>
+        <button class="dial-change" id="change" type="button">change</button>
       </div>
     </section>
 

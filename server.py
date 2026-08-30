@@ -81,8 +81,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/map":
             return self._send(200, MAP_PAYLOAD)
         if path == "/api/new":
+            # Keyboard-only play, with no phone to recognise the player by.
             session = STORE.create()
-            return self._send(200, {"code": session.code, **self._env()})
+            return self._send(200, {**session.state(), **self._env()})
         if path == "/api/state":
             session = STORE.get(query.get("code", [""])[0])
             if session is None:
@@ -106,6 +107,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(503, {"error": "game not ready"})
             narration = COMMAND_HOOK(session, data.get("text", ""))
             return self._send(200, {"narration": narration, **session.state()})
+        if url.path == "/api/claim":
+            data = self._body()
+            session, error = STORE.claim(data.get("phone"), (data.get("name") or "").strip()[:24])
+            if error:
+                return self._send(400, {"error": error})
+            session.publish()
+            return self._send(200, {**session.state(), **self._env()})
         if url.path == "/api/name":
             data = self._body()
             session = STORE.get(data.get("code"))

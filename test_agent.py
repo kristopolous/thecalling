@@ -1,4 +1,9 @@
-"""End-to-end check: an LLM roleplays a caller and actually plays the dungeon.
+"""End-to-end checks for the two ways a call finds its screen.
+
+  1. Caller ID -- the normal path. Tested in-process, since a roleplay session
+     has no real caller ID.
+  2. Spoken last-four digits -- the fallback, tested with a real automated call
+     where an LLM roleplays the caller.
 
 Run with:  .venv/bin/python test_agent.py
 """
@@ -7,18 +12,39 @@ import json
 import sys
 
 import main
-from sessions import STORE
+from sessions import STORE, last4
 
-main.load_env()
 
-session = STORE.create()
-print(f"opened dungeon code {session.code}\n")
+def test_caller_id():
+    print("=== 1. caller ID binding ===")
+    phone = "+1 657-210-1337"
+    session, error = STORE.claim(phone, "Chris")
+    assert error is None, error
+    assert session.code == "1337", session.code
+    print(f"  page claimed {phone} -> session {session.code}")
 
-PROMPT = f"""
+    bound = STORE.bind_caller("+16572101337", "call-abc")
+    assert bound is session, "caller ID did not find the claimed session"
+    print(f"  incoming +16572101337 -> recognised as {bound.player_name}")
+
+    assert STORE.bind_caller("+19998887777", "call-xyz") is None
+    print("  an unclaimed number is not bound (falls back to spoken digits)")
+
+    assert last4("(657) 210 1337") == "1337" and last4("nope") is None
+    print("  number normalising holds up\n")
+
+
+def test_spoken_fallback():
+    print("=== 2. spoken fallback (a real call) ===")
+    phone = "+1 555 010 4477"
+    session, _ = STORE.claim(phone, "Rasputin")
+    print(f"  page claimed {phone} -> waiting on digits {session.code}\n")
+
+    prompt = f"""
 You are calling a phone line that runs a text adventure game. Play it like a real person.
 
-Your dungeon code is {session.code} -- say the four digits when asked for it.
-Your name is Rasputin -- give that when asked for a name.
+It will not recognise your number, and will ask for the last four digits of your phone
+number. They are {session.code} -- say those four digits.
 
 Then play, one command at a time, waiting for the narrator each time:
   1. say "go south"
@@ -26,26 +52,33 @@ Then play, one command at a time, waiting for the narrator each time:
   3. say "go south"
   4. say "take the glowing fungus"
   5. say "what am I carrying"
-  6. say "look around"
-  7. say "go east"
-Then say you are finished playing and want to hang up. Do not invent your own
-dungeon details; just say the commands and listen.
+Then say you are finished playing and want to hang up. Do not invent your own dungeon
+details; just say the commands and listen.
 """
+    call = main.agent.roleplay(prompt)
 
-test_session = main.agent.roleplay(PROMPT)
+    print("----- transcript -----")
+    print(call.get_transcript())
 
-print("\n===== TRANSCRIPT =====")
-print(test_session.get_transcript())
+    if session.game is None:
+        print("\n!! the call never bound to the session")
+        return False
 
-print("\n===== GAME STATE =====")
-if session.game is None:
-    print("!! the call never bound to the session")
-    sys.exit(1)
-print(json.dumps(session.game.snapshot(), indent=1)[:1200])
+    print("\n----- player-visible log -----")
+    for line in session.transcript:
+        print(f"  {line['who']:8} {line['text'][:100]}")
+    print("\n  state:", json.dumps({
+        "room": session.game.snapshot()["room_name"],
+        "carrying": [i["key"] for i in session.game.snapshot()["inventory"]],
+        "moves": session.game.moves,
+    }))
+    print("  executed:", getattr(call, "executed_actions", None))
+    print("  termination:", getattr(call, "termination_reason", None))
+    return True
 
-print("\n===== PLAYER-VISIBLE LOG =====")
-for line in session.transcript:
-    print(f"  {line['who']:8} {line['text'][:110]}")
 
-print("\nexecuted actions:", getattr(test_session, "executed_actions", None))
-print("termination:", getattr(test_session, "termination_reason", None))
+if __name__ == "__main__":
+    test_caller_id()
+    ok = test_spoken_fallback() if "--offline" not in sys.argv else True
+    print("\nOK" if ok else "\nFAILED")
+    sys.exit(0 if ok else 1)

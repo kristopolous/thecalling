@@ -3,8 +3,8 @@
 A text adventure you play **down the phone**, while your character moves on a map in
 the browser.
 
-Open the page, and it shows you a dungeon map, a phone number and a four digit code.
-You call the number, key or say the code, and from then on the call *is* the game:
+Open the page, put in your phone number, and call the number it shows you. It knows
+you by your caller ID, so there is nothing to read out — the call just *is* the game:
 you say `go north`, `take the sword`, `attack the skeleton`, and the character on
 screen moves in real time. The map also shows the ghost trails of everyone who has
 played before you — how far they got, and how long it took them — so you know exactly
@@ -41,6 +41,18 @@ Useful flags:
 
 There is a text box under the map at all times. It runs the identical engine, so you
 can develop and test the whole game without spending a phone call.
+
+## Joining
+
+The page asks for your phone number and files your dungeon under its last four
+digits. When you call, the agent reads the caller ID and picks up that session
+silently — `on_call_start` binds and starts narrating immediately.
+
+If your number is withheld, or you called before filling the page in, it falls back
+to asking for those last four digits by voice or keypad.
+
+Hanging up ends your run: it freezes where you stood, stops the clock, and goes on
+the board as `abandoned`. Call back for a fresh one.
 
 ## Playing
 
@@ -87,8 +99,9 @@ engine, pushes the new state to the browser, and instructs the agent to read the
 result back word for word. Read-only commands (`look`, inventory, `examine`) go
 through `on_question` instead, so looking around never costs you a turn.
 
-Finished runs are appended to `runs.json`, which is what the ghost trails and the
-board on the right are drawn from.
+Finished runs — escaped, dead or hung up on — are appended to `runs.json`, which is
+what the ghost trails and the dashboard down the left are drawn from. Writes re-read
+the file and merge, so running the tests beside a live server does not lose runs.
 
 ## Testing
 
@@ -96,6 +109,9 @@ board on the right are drawn from.
 .venv/bin/python test_agent.py
 ```
 
-This places a real automated call: an LLM roleplays a caller who reads in the code,
-gives a name, and plays a few turns. It prints the transcript, the resulting game
-state, and the actions the engine actually executed.
+Two checks. The first covers caller-ID binding in process. The second places a real
+automated call: a roleplay session has no caller ID, so it exercises the spoken
+fallback, plays a few turns, and hangs up. It prints the transcript, the resulting
+game state, and the actions the engine actually executed.
+
+`--offline` runs only the first, and places no call.

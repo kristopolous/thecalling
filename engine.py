@@ -30,6 +30,11 @@ for _d in DOORS:
     EXITS[_d.b][_direction(_d.b, _d.a)] = _d
 
 
+def the(room_name):
+    """Room names like "The Vault" already carry their article; don't double it."""
+    return room_name if room_name.lower().startswith("the ") else f"the {room_name}"
+
+
 def _listify(names):
     names = list(names)
     if not names:
@@ -160,7 +165,7 @@ class GameState:
 
     def status_line(self):
         carried = _listify([ITEMS_BY_KEY[k].name for k in self.inventory]) or "nothing"
-        return (f"You are in the {self._room().name}, carrying {carried}, "
+        return (f"You are in {the(self._room().name)}, carrying {carried}, "
                 f"with {self.health} health, after {int(self.elapsed)} seconds.")
 
     # ---------------------------------------------------------------- the turn
@@ -168,8 +173,11 @@ class GameState:
     def execute(self, verb, noun=None, target=None):
         """Run one command. Returns the narration to speak."""
         if not self.alive:
-            return ("Your run is over. " + ("You made it out." if self.outcome == "escaped"
-                                            else "You died down there."))
+            return "Your run is over. " + {
+                "escaped": "You made it out.",
+                "dead": "You died down there.",
+                "abandoned": "You hung up on it.",
+            }.get(self.outcome, "")
 
         room = self._room()
         blind = room.dark and not self.has_light
@@ -230,12 +238,23 @@ class GameState:
         return ("It is pitch black and you cannot see what you are doing. "
                 "Get out, or find a light, quickly.")
 
+    def abandon(self):
+        """The player hung up. Freeze the run where it stands."""
+        if not self.alive:
+            return None
+        self.outcome = "abandoned"
+        self.ended_at = time.time()
+        self._record_path()
+        return (f"{self.player_name or 'The player'} hung up in {the(self._room().name)} "
+                f"after {int(self.elapsed)} seconds.")
+
     def _die(self, text):
         self.outcome = "dead"
         self.ended_at = time.time()
         self.health = 0
         self._record_path()
-        return f"{text} You are dead. You got as far as the {self._room().name}, in {int(self.elapsed)} seconds."
+        return (f"{text} You are dead. You got as far as {the(self._room().name)}, "
+                f"in {int(self.elapsed)} seconds.")
 
     def _win(self):
         self.outcome = "escaped"

@@ -10,6 +10,7 @@ import os
 import queue
 import random
 import threading
+import re
 import time
 
 from engine import GameState
@@ -20,14 +21,24 @@ SESSION_TTL = 60 * 60 * 3   # forget idle sessions after three hours
 MAX_GHOSTS = 12
 
 
+def last4(phone):
+    """The last four digits of a phone number -- the key a session is filed under.
+
+    A caller is recognised by their caller ID, so the code on screen is simply
+    the tail of the number they will be calling from. Nothing to read out.
+    """
+    digits = re.sub(r"\D", "", str(phone or ""))
+    return digits[-4:] if len(digits) >= 4 else None
+
+
 class Session:
     def __init__(self, code):
-        self.code = code
+        self.code = code            # the last four digits of the player's phone
         self.created = time.time()
         self.touched = time.time()
         self.player_name = None
         self.call_id = None
-        self.phone_tail = None      # last four digits of the caller, for the board
+        self.phone = None           # what the player typed on the page
         self.game = None
         self.transcript = []        # [{"who": "player"|"dungeon", "text": ..., "t": ...}]
         self._subscribers = []
@@ -43,9 +54,8 @@ class Session:
         self.touched = time.time()
         return self.game
 
-    def bind_call(self, call_id, phone_tail=None):
+    def bind_call(self, call_id):
         self.call_id = call_id
-        self.phone_tail = phone_tail
         self.touched = time.time()
 
     def unbind_call(self):
@@ -95,6 +105,7 @@ class Session:
             "code": self.code,
             "connected": self.connected,
             "player_name": self.player_name,
+            "phone": self.phone,
             "transcript": self.transcript[-40:],
             "game": self.game.snapshot() if self.game else None,
         }
@@ -122,6 +133,26 @@ class SessionStore:
             self._by_code[code] = session
             return session
 
+    def claim(self, phone, name=None):
+        """Reserve the session for a phone number. Returns (session, error)."""
+        code = last4(phone)
+        if code is None:
+            return None, "That does not look like a phone number."
+        with self._lock:
+            self._reap()
+            session = self._by_code.get(code)
+            if session is None:
+                session = Session(code)
+                self._by_code[code] = session
+            elif session.connected:
+                # Someone is mid-call on this number; do not pull the rug out.
+                return session, None
+        session.phone = phone
+        if name:
+            session.player_name = name
+        session.touched = time.time()
+        return session, None
+
     def get(self, code):
         session = self._by_code.get((code or "").strip())
         if session:
@@ -131,16 +162,21 @@ class SessionStore:
     def by_call(self, call_id):
         return self._by_call.get(call_id)
 
-    def bind(self, code, call_id, phone_tail=None):
+    def bind(self, code, call_id):
         session = self.get(code)
         if session is None:
             return None
         with self._lock:
             if session.call_id:
                 self._by_call.pop(session.call_id, None)
-            session.bind_call(call_id, phone_tail)
+            session.bind_call(call_id)
             self._by_call[call_id] = session
         return session
+
+    def bind_caller(self, from_number, call_id):
+        """Bind by caller ID -- the normal path. None if nobody claimed that number."""
+        code = last4(from_number)
+        return self.bind(code, call_id) if code else None
 
     def release(self, call_id):
         with self._lock:
@@ -180,8 +216,7 @@ class SessionStore:
         finished = time.time()
         run = {
             "id": f"{finished:.3f}-{session.code}",
-            "name": session.player_name or (f"Caller {session.phone_tail}" if session.phone_tail
-                                            else "Anonymous"),
+            "name": session.player_name or f"Caller {session.code}",
             "outcome": game.outcome or "lost",
             "score": game.score(),
             "elapsed": round(game.elapsed, 1),
@@ -193,6 +228,15 @@ class SessionStore:
             "finished_at": finished,
         }
         with self._lock:
+            # Re-read first: the test harness and the server are separate
+            # processes, and each was otherwise rewriting the whole file from
+            # its own in-memory copy, dropping the other's runs.
+            on_disk = self._load_runs()
+            known = {r.get("id") for r in self.runs}
+            for r in on_disk:
+                if self._identify(r)["id"] not in known:
+                    self.runs.append(r)
+            self.runs.sort(key=lambda r: r.get("finished_at", 0))
             self.runs.append(run)
             self._save_runs()
         return run

@@ -85,20 +85,24 @@ def run_command(session, command, spoken_as=None):
     text = session.game.execute(*command)
     session.say("dungeon", text)
 
-    if not session.game.alive and not getattr(session, "_recorded", False):
-        session._recorded = True
-        STORE.record_run(session)
+    if not session.game.alive:
+        bank_run(session)
 
     session.publish()
     logger.info("[%s] %s -> %s", session.code, describe(command), text[:90])
     return text
 
 
+def bank_run(session):
+    """Put a finished or abandoned run on the board, exactly once."""
+    if session.game is None or getattr(session, "_recorded", False):
+        return None
+    session._recorded = True
+    return STORE.record_run(session)
+
+
 def restart(session):
-    # An abandoned run still counts as a mark on the board.
-    if session.game is not None and not getattr(session, "_recorded", False):
-        session._recorded = True
-        STORE.record_run(session)
+    bank_run(session)          # an abandoned run still counts as a mark
     session.start_game()
     session._recorded = False
     text = "The stair takes you back down into the dark. " + session.game.describe_room()
@@ -127,40 +131,53 @@ def narrate(call, text):
 
 @agent.on_call_start
 def on_call_start(call: guava.Call):
+    """Recognise the caller by their number. No code to read out."""
+    from_number = getattr(call.call_info, "from_number", None)
+    session = STORE.bind_caller(from_number, call.id) if from_number else None
+
+    if session is not None:
+        logger.info("recognised %s as session %s", from_number, session.code)
+        call.read_script("You have reached The Calling. The Vault of Kaldrath is open to you.")
+        begin(call, session)
+        return
+
+    # Either the caller withheld their number, or they have not opened the page
+    # and typed it in yet. Fall back to asking for the last four digits.
+    logger.info("unrecognised caller %s -- falling back to spoken digits", from_number)
     call.read_script(
-        "You have reached The Calling, and the Vault of Kaldrath is open. "
-        "Look at the screen in front of you and give me your four digit dungeon code."
+        "You have reached The Calling. I do not recognise the number you are calling from. "
+        "Open the page, put your phone number in, and then tell me the last four digits of it."
     )
     call.set_task(
         "join",
-        objective="Bind this call to the player's screen, then get their name for the board.",
+        objective="Find out which screen this caller is sitting at.",
         checklist=[
-            Field(key="dungeon_code", field_type="digit_sequence",
-                  description="The four digit dungeon code shown on the player's screen.",
-                  question="What is your four digit dungeon code?"),
-            Field(key="player_name", field_type="text",
-                  description="What to call this player on the leaderboard.",
-                  question="And what name should go on the board?"),
+            Field(key="phone_tail", field_type="digit_sequence",
+                  description="The last four digits of the phone number the caller entered "
+                              "on the web page.",
+                  question="What are the last four digits of your phone number?"),
         ],
     )
 
 
 @agent.on_task_complete("join")
 def on_join(call: guava.Call):
-    code = re.sub(r"\D", "", str(call.get_field("dungeon_code") or ""))[:4]
-    name = (str(call.get_field("player_name") or "").strip() or None)
-
-    session = STORE.bind(code, call.id)
+    tail = re.sub(r"\D", "", str(call.get_field("phone_tail") or ""))[-4:]
+    session = STORE.bind(tail, call.id)
     if session is None:
         call.send_instruction(
-            f"There is no dungeon open with the code {code}. Tell the player that code is not "
-            "open, ask them to read the four digit code on their screen again, and try once more."
+            f"No screen is waiting on a number ending {tail}. Tell the player to open the page, "
+            "type their phone number into the box, and then read those last four digits back."
         )
-        call.retry_task("The dungeon code the player gave is not open on any screen.")
+        call.retry_task("No screen is open for that phone number yet.")
         return
+    begin(call, session)
 
-    session.player_name = name
-    session.start_game(name)
+
+def begin(call: guava.Call, session):
+    """Hand the caller their character and start narrating."""
+    bank_run(session)
+    session.start_game(session.player_name)
     session._recorded = False
     session.publish()
 
@@ -183,7 +200,8 @@ def on_join(call: guava.Call):
         completion_criteria=("Only when the player has finished a run and says clearly that they "
                              "are done playing and want to hang up."),
     )
-    narrate(call, f"{'Welcome, ' + name + '. ' if name else ''}{session.game.describe_room()}")
+    greeting = f"Welcome, {session.player_name}. " if session.player_name else ""
+    narrate(call, greeting + session.game.describe_room())
 
 
 @agent.on_task_complete("dungeon")
@@ -257,14 +275,23 @@ def on_dtmf(call: guava.Call, event):
 
 @agent.on_session_end
 def on_session_end(call: guava.Call, event):
+    """The caller is gone. Stop the run where it stands and put it on the board.
+
+    Without this the clock on the page keeps counting up forever and the run
+    never lands in the leaderboard, because nothing else ends it.
+    """
     session = STORE.by_call(call.id)
     if session is None:
         return
-    if session.game and session.game.alive and not getattr(session, "_recorded", False):
-        session._recorded = True
-        STORE.record_run(session)   # an abandoned run still counts as a mark on the board
-    STORE.release(call.id)
-    logger.info("[%s] call ended: %s", session.code, event.termination_reason)
+
+    if session.game is not None and session.game.alive:
+        note = session.game.abandon()
+        if note:
+            session.say("dungeon", note)
+    bank_run(session)
+    STORE.release(call.id)          # publishes the frozen state to the page
+    logger.info("[%s] call ended: %s (run %s)", session.code, event.termination_reason,
+                session.game.outcome if session.game else "none")
 
 
 # ----------------------------------------------------------------- bootstrap
