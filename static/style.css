@@ -1,20 +1,33 @@
-/* The Calling! -- a dungeon you play down the phone. */
+/* The Calling! -- a dungeon you play down the phone.
+ *
+ * Two worlds on one page. The fiction is a dungeon crawl: carved stone caps for
+ * the wordmark, a seventeenth-century book face for the dungeon's voice. The
+ * chassis is a telephone console: engraved plaques, signal lamps, CRT numerals.
+ * The signature is the torch -- a warm light that follows the character around
+ * the map, because light is the thing that actually keeps you alive down there.
+ */
 
 :root {
-  --ink: #08080b;
-  --panel: #0e0e13;
-  --panel-2: #14141b;
-  --line: #23232e;
-  --bone: #ded6c6;
-  --dim: #7a736a;
-  --dimmer: #4a4550;
-  --amber: #f2a93b;
-  --amber-soft: #f2a93b26;
-  --blood: #cf5341;
-  --moss: #7fa86a;
-  --cold: #6fa8c4;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  /* Torchlight on wet stone. Warm-biased darks, never blue-black. */
+  --ink:        #0a0806;
+  --panel:      #120e0a;
+  --panel-2:    #1a1410;
+  --line:       #2b2219;
+  --bone:       #ece0c8;
+  --dim:        #93826c;
+  --dimmer:     #57493c;
+  --amber:      #ffab3d;
+  --amber-soft: #ffab3d26;
+  --blood:      #d24b3c;
+  --moss:       #86b070;
+  --cold:       #74b5a4;
+  --gold:       #dfae4c;
+
+  --display: "Cinzel Decorative", Cinzel, Georgia, serif;   /* the wordmark, once */
+  --plaque:  "Cinzel", Georgia, serif;                      /* engraved labels */
+  --serif:   "IM Fell English", "Iowan Old Style", Georgia, serif;  /* the dungeon speaking */
+  --data:    "VT323", ui-monospace, monospace;              /* numerals on the console */
+  --mono:    ui-monospace, "SF Mono", Menlo, Consolas, monospace;   /* map micro-labels */
 }
 
 * { box-sizing: border-box; }
@@ -31,9 +44,11 @@ html, body {
 
 body {
   background-image:
-    radial-gradient(900px 600px at 22% -10%, #17141c 0%, transparent 70%),
-    radial-gradient(700px 500px at 100% 100%, #14110f 0%, transparent 70%);
+    radial-gradient(1000px 640px at 24% -12%, #1d1409 0%, transparent 68%),
+    radial-gradient(760px 520px at 102% 104%, #1a0f08 0%, transparent 70%);
 }
+
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 /* ------------------------------------------------------------------ layout */
 
@@ -51,10 +66,7 @@ body {
   overflow: hidden;
 }
 
-.stage {
-  display: flex;
-  flex-direction: column;
-}
+.stage { display: flex; flex-direction: column; }
 
 .rail {
   display: flex;
@@ -67,27 +79,41 @@ body {
 /* ------------------------------------------------------------------ header */
 
 header {
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: 14px;
-  padding: 18px 24px 14px;
+  gap: 16px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--line);
+}
+
+/* A seam of torchlight along the bottom edge of the title block. */
+header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--amber), transparent 58%);
+  opacity: 0.4;
 }
 
 h1 {
   margin: 0;
-  font-family: var(--serif);
-  font-size: 21px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--bone);
+  text-shadow: 0 0 26px #ffab3d2e;
 }
 
-h1 em { font-style: italic; color: var(--amber); }
+h1 em { font-style: normal; color: var(--amber); }
 
 .tagline {
+  font-family: var(--plaque);
   color: var(--dim);
   font-size: 11px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
 }
 
@@ -119,28 +145,47 @@ svg.map {
 }
 
 .room-plate {
-  fill: #101017;
-  stroke: #1d1d27;
+  fill: #14100c;
+  stroke: #2b2219;
   stroke-width: 1.5;
 }
-.room-plate.seen { fill: #17161e; stroke: #34323f; }
-.room-plate.here { fill: #241d16; stroke: var(--amber); stroke-width: 2; }
+.room-plate.seen { fill: #1e1710; stroke: #46372a; }
+.room-plate.here {
+  fill: #2c1e10;
+  stroke: var(--amber);
+  stroke-width: 2;
+  animation: flicker 3.1s ease-in-out infinite;   /* the torch is guttering */
+}
+@keyframes flicker {
+  0%, 100% { stroke-opacity: 1; }
+  40%      { stroke-opacity: 0.66; }
+  62%      { stroke-opacity: 0.94; }
+  81%      { stroke-opacity: 0.74; }
+}
 
 .room-label {
-  font-family: var(--mono);
+  font-family: var(--mono);   /* legibility beats flavour at 8.5px */
   font-size: 8.5px;
   fill: var(--dimmer);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.room-label.seen { fill: #8d8578; }
+.room-label.seen { fill: #a1907a; }
 .room-label.here { fill: var(--amber); }
 
-.door { stroke: #1d1d27; stroke-width: 7; stroke-linecap: butt; }
-.door.seen { stroke: #34323f; }
-.door.locked { stroke: var(--blood); stroke-dasharray: 3 3; opacity: 0.65; }
+.door { stroke: #2b2219; stroke-width: 7; stroke-linecap: butt; }
+.door.seen { stroke: #46372a; }
+.door.locked { stroke: var(--blood); stroke-dasharray: 3 3; opacity: 0.7; }
 .door.opened { stroke: var(--moss); stroke-dasharray: none; opacity: 0.7; }
 .door.hidden { display: none; }
+
+/* THE SIGNATURE: a torch that travels with the character. Additive warmth
+   rather than a darkness mask, so it lights the way without ever hiding the
+   maze the player needs to read. */
+.torch {
+  pointer-events: none;
+  transition: transform 360ms cubic-bezier(.4, 1.15, .5, 1);
+}
 
 .ghost-name {
   font-family: var(--mono);
@@ -157,14 +202,14 @@ svg.map {
   fill: none;
   stroke: var(--amber);
   stroke-width: 2.2;
-  opacity: 0.3;
+  opacity: 0.28;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .you {
   fill: var(--amber);
-  filter: drop-shadow(0 0 6px #f2a93b90);
+  filter: drop-shadow(0 0 7px #ffab3daa);
   transition: cx 340ms cubic-bezier(.4, 1.2, .5, 1), cy 340ms cubic-bezier(.4, 1.2, .5, 1);
 }
 .you.dead { fill: var(--blood); filter: none; }
@@ -191,14 +236,14 @@ svg.map {
 }
 @keyframes haze {
   0%, 100% { opacity: 0.05; }
-  50%      { opacity: 0.16; }
+  50%      { opacity: 0.18; }
 }
 .wanderer-mark {
-  fill: #cfe6f2;
+  fill: #d3efe4;
   font-size: 15px;
   font-family: var(--mono);
   text-anchor: middle;
-  filter: drop-shadow(0 0 7px #6fa8c4aa);
+  filter: drop-shadow(0 0 8px #74b5a4bb);
   animation: haze 3.6s ease-in-out infinite;
 }
 
@@ -215,9 +260,10 @@ section {
 
 h2 {
   margin: 0 0 12px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
+  font-family: var(--plaque);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--dim);
 }
@@ -227,37 +273,44 @@ h2 {
 .claim { display: flex; flex-direction: column; gap: 6px; }
 .claim[hidden] { display: none; }
 .claim label {
+  font-family: var(--plaque);
   color: var(--dim);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .claim label + input { margin-bottom: 6px; }
 .claim input {
   background: var(--panel-2);
   border: 1px solid var(--line);
+  border-top-color: #0d0a07;
   color: var(--bone);
-  font-family: var(--mono);
-  font-size: 14px;
-  padding: 9px 11px;
+  font-family: var(--data);
+  font-size: 20px;
+  line-height: 1;
+  padding: 8px 11px;
 }
-.claim input:focus { outline: none; border-color: #4c3d1c; }
+.claim input:focus { outline: none; border-color: #6b5024; }
 .claim input::placeholder { color: var(--dimmer); }
 .claim button {
   margin-top: 4px;
-  background: none;
-  border: 1px solid #4c3d1c;
+  background: linear-gradient(#241a0e, #17110a);
+  border: 1px solid #6b5024;
   color: var(--amber);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-family: var(--plaque);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  padding: 10px;
+  padding: 11px;
   cursor: pointer;
-  transition: background 140ms ease;
+  transition: background 140ms ease, box-shadow 140ms ease;
 }
-.claim button:hover { background: #1a150c; }
-.claim-note { margin: 8px 0 0; color: var(--dimmer); line-height: 1.6; }
+.claim button:hover {
+  background: linear-gradient(#3a290f, #22180d);
+  box-shadow: 0 0 20px #ffab3d24;
+}
+.claim-note { margin: 8px 0 0; color: var(--dimmer); line-height: 1.65; }
 .claim-note.error { color: var(--blood); }
 
 .dial {
@@ -270,31 +323,34 @@ h2 {
 .dial-main { min-width: 0; }
 
 .dial-label {
+  font-family: var(--plaque);
   color: var(--dim);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 10px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .dial-code {
-  font-size: 34px;
-  line-height: 1;
-  letter-spacing: 0.1em;
+  font-family: var(--data);
+  font-size: 46px;
+  line-height: 0.9;
+  letter-spacing: 0.06em;
   color: var(--amber);
-  text-shadow: 0 0 22px #f2a93b3d;
+  text-shadow: 0 0 24px #ffab3d55;
   white-space: nowrap;
 }
 .dial-code.pending { color: var(--dimmer); text-shadow: none; }
 
 .dial-number {
-  font-size: 22px;
-  line-height: 1.25;
-  letter-spacing: 0.01em;
+  font-family: var(--data);
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
   color: var(--amber);
-  text-shadow: 0 0 22px #f2a93b30;
+  text-shadow: 0 0 22px #ffab3d3d;
 }
 
-.dial-hint { color: var(--dim); margin-top: 6px; line-height: 1.6; }
+.dial-hint { color: var(--dim); margin-top: 6px; line-height: 1.65; }
 .dial-hint b { color: var(--bone); font-weight: 400; letter-spacing: 0.1em; }
 
 .dial-change {
@@ -302,9 +358,9 @@ h2 {
   border: none;
   border-bottom: 1px solid var(--line);
   color: var(--dimmer);
-  font-family: var(--mono);
+  font-family: var(--plaque);
   font-size: 10px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   padding: 0 0 2px;
   cursor: pointer;
@@ -312,35 +368,52 @@ h2 {
 .dial-change:hover { color: var(--dim); border-color: var(--dim); }
 .dial-change[hidden] { display: none; }
 
+/* Signal lamp */
+
 .status-dot {
   display: inline-block;
   width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--dimmer);
-  margin-right: 7px;
+  margin-right: 8px;
   vertical-align: 1px;
 }
 .status-dot.live {
   background: var(--moss);
-  box-shadow: 0 0 0 0 #7fa86aaa;
+  box-shadow: 0 0 0 0 #86b070aa;
   animation: ring 1.8s ease-out infinite;
 }
 @keyframes ring {
-  70%  { box-shadow: 0 0 0 7px #7fa86a00; }
-  100% { box-shadow: 0 0 0 0 #7fa86a00; }
+  70%  { box-shadow: 0 0 0 7px #86b07000; }
+  100% { box-shadow: 0 0 0 0 #86b07000; }
 }
 
 /* Vitals */
 
 .vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.vital-label { color: var(--dim); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }
-.vital-value { font-size: 19px; margin-top: 3px; }
+.vital-label {
+  font-family: var(--plaque);
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.vital-value {
+  font-family: var(--data);
+  font-size: 30px;
+  line-height: 1;
+  margin-top: 2px;
+  color: var(--bone);
+}
 
+/* Health as discrete pips, the way a game HUD counts it. The mask cuts one
+   continuous bar into notches, so the width the script sets still works. */
 .bar {
-  height: 4px;
+  height: 9px;
   margin-top: 12px;
-  background: #1c1c24;
-  overflow: hidden;
+  background: #241b12;
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
+          mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 10px);
 }
 .bar > i {
   display: block;
@@ -352,56 +425,70 @@ h2 {
 .bar.dying > i { background: var(--blood); }
 
 .wander-note {
-  margin-top: 11px;
+  margin-top: 12px;
   color: var(--cold);
   font-size: 11px;
 }
 .wander-note[hidden] { display: none; }
-.wander-note b { color: var(--bone); font-weight: 400; }
-.wander-key { color: #cfe6f2; font-weight: 400; }
+.wander-note b { color: var(--bone); font-weight: 400; font-family: var(--data); font-size: 15px; }
+.wander-key { color: #d3efe4; font-weight: 400; }
 
-/* Inventory */
+/* Pack -- inventory slots */
 
 .pack { display: flex; flex-wrap: wrap; gap: 6px; }
 .pack span {
   border: 1px solid var(--line);
-  background: var(--panel-2);
-  padding: 4px 9px;
-  color: #b6ae9f;
+  border-top-color: #3a2e22;
+  background: linear-gradient(#1c1610, #141009);
+  padding: 5px 10px;
+  color: #c8b89c;
   font-size: 11px;
 }
-.pack .treasure { border-color: #4c3d1c; color: var(--amber); }
+.pack .treasure { border-color: #6b5024; color: var(--gold); }
 .pack em { color: var(--dimmer); font-style: normal; }
 
-/* Transcript */
+/* The call */
 
 .log { display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto; }
-.log .line { line-height: 1.62; }
+.log .line { line-height: 1.6; }
 .log .player {
+  font-family: var(--plaque);
   color: var(--amber);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.log .player::before { content: "> "; color: var(--dimmer); }
-.log .dungeon { font-family: var(--serif); font-size: 15px; color: #cbc3b4; }
+.log .player::before { content: "\203A  "; color: var(--dimmer); }
+.log .dungeon {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.55;
+  color: #d9cbaf;
+}
+
+/* Verdict */
+
+.verdict {
+  padding: 14px 20px;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--line);
+}
+.verdict.escaped { color: var(--moss); }
+.verdict.dead { color: var(--blood); }
+.verdict.abandoned { color: var(--dim); }
+.verdict[hidden] { display: none; }
 
 /* ------------------------------------------------- previous runs dashboard */
 
 .runs { display: flex; flex-direction: column; }
 
-.runs-head {
-  padding: 18px 18px 14px;
-  border-bottom: 1px solid var(--line);
-}
+.runs-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
 .runs-head h2 { margin: 0 0 8px; }
-.runs-stats {
-  color: var(--dim);
-  font-size: 11px;
-  line-height: 1.7;
-}
-.runs-stats b { color: var(--bone); font-weight: 400; }
-.runs-stats .best { color: var(--moss); font-variant-numeric: tabular-nums; }
+.runs-stats { color: var(--dim); font-size: 11px; line-height: 1.75; }
+.runs-stats b { color: var(--bone); font-weight: 400; font-family: var(--data); font-size: 16px; }
+.runs-stats .best { color: var(--moss); font-family: var(--data); font-size: 16px; }
 
 .runs-list {
   flex: 1;
@@ -411,12 +498,7 @@ h2 {
   padding: 6px 0;
 }
 
-.runs-empty {
-  margin: 0;
-  padding: 18px;
-  color: var(--dimmer);
-  line-height: 1.7;
-}
+.runs-empty { margin: 0; padding: 18px; color: var(--dimmer); line-height: 1.7; }
 
 .run {
   display: grid;
@@ -425,17 +507,17 @@ h2 {
   column-gap: 10px;
   row-gap: 5px;
   padding: 11px 18px;
-  border-bottom: 1px solid #14141b;
+  border-bottom: 1px solid #171208;
   cursor: default;
   transition: background 140ms ease;
 }
-.run:hover { background: #12121a; }
-.run.best { background: linear-gradient(90deg, #1a150c 0%, transparent 70%); }
+.run:hover { background: #171009; }
+.run.best { background: linear-gradient(90deg, #241906 0%, transparent 72%); }
 
 .run .mark {
   grid-area: mark;
   width: 9px; height: 9px;
-  margin-top: 3px;
+  margin-top: 4px;
   border-radius: 50%;
   border: 1.5px solid currentColor;
 }
@@ -443,7 +525,9 @@ h2 {
 
 .run .who {
   grid-area: who;
-  color: #c3bbac;
+  font-family: var(--plaque);
+  font-size: 14px;
+  color: #cabb9f;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -452,7 +536,9 @@ h2 {
 
 .run .time {
   grid-area: time;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--data);
+  font-size: 19px;
+  line-height: 1;
   color: var(--amber);
 }
 .run.escaped .time { color: var(--moss); }
@@ -467,9 +553,10 @@ h2 {
 }
 .run .where .badge {
   color: var(--moss);
-  letter-spacing: 0.12em;
+  font-family: var(--plaque);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .run .depth {
@@ -481,12 +568,7 @@ h2 {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
-.run .depth i {
-  display: block;
-  width: 46px;
-  height: 3px;
-  background: #1c1c24;
-}
+.run .depth i { display: block; width: 46px; height: 3px; background: #241b12; }
 .run .depth i > b { display: block; height: 100%; background: currentColor; }
 
 .runs-foot {
@@ -494,7 +576,7 @@ h2 {
   border-top: 1px solid var(--line);
   color: var(--dimmer);
   font-size: 10px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* Hovering a run in the list picks its point out of the others. */
@@ -502,7 +584,7 @@ h2 {
 .layer-ghosts.focusing .ghost-group { opacity: 0.15; }
 .layer-ghosts.focusing .ghost-group.lit { opacity: 1; }
 
-/* Type-in fallback */
+/* ------------------------------- typing box, only with no phone line at all */
 
 .compose { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
 .compose[hidden] { display: none; }
@@ -515,31 +597,22 @@ h2 {
   font-size: 13px;
   padding: 9px 11px;
 }
-.compose input:focus { outline: none; border-color: #43414f; }
+.compose input:focus { outline: none; border-color: #6b5024; }
 .compose input::placeholder { color: var(--dimmer); }
 .compose button {
   background: none;
   border: 1px solid var(--line);
   color: var(--dim);
-  font-family: var(--mono);
+  font-family: var(--plaque);
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 0 14px;
+  padding: 0 16px;
   cursor: pointer;
 }
-.compose button:hover { color: var(--amber); border-color: #4c3d1c; }
+.compose button:hover { color: var(--amber); border-color: #6b5024; }
 
-.verdict {
-  padding: 14px 20px;
-  font-family: var(--serif);
-  font-size: 16px;
-  border-bottom: 1px solid var(--line);
-}
-.verdict.escaped { color: var(--moss); }
-.verdict.dead { color: var(--blood); }
-.verdict.abandoned { color: var(--dim); }
-.verdict[hidden] { display: none; }
+/* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1240px) {
   .shell { grid-template-columns: 238px minmax(0, 1fr) 332px; }
@@ -555,4 +628,13 @@ h2 {
   .stage { order: 1; }
   .rail { order: 2; }
   .runs-list { max-height: 340px; }
+  h1 { font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

@@ -66,6 +66,16 @@ function clock(seconds) {
 
 /* -------------------------------------------------------------- static map */
 
+function torchGradient() {
+  const defs = make("defs");
+  const grad = make("radialGradient", { id: "torchlight" });
+  for (const [offset, color] of [["0%", "#ffab3d38"], ["42%", "#ffab3d16"], ["100%", "#ffab3d00"]]) {
+    grad.appendChild(make("stop", { offset, "stop-color": color }));
+  }
+  defs.appendChild(grad);
+  return defs;
+}
+
 function drawBase() {
   const w = PAD * 2 + MAP.width * PITCH - GAP;
   const h = PAD * 2 + MAP.height * PITCH - GAP;
@@ -77,7 +87,10 @@ function drawBase() {
   MAP.byKey = byKey;
 
   const layers = {};
-  for (const name of ["doors", "rooms", "ghosts", "glyphs", "wanderer", "you"]) {
+  // The torch sits above the stonework but under everything that must stay
+  // readable, so it lights the map without washing anything out.
+  svg.appendChild(torchGradient());
+  for (const name of ["doors", "rooms", "torch", "ghosts", "glyphs", "wanderer", "you"]) {
     layers[name] = make("g", { class: `layer-${name}` });
     svg.appendChild(layers[name]);
   }
@@ -145,6 +158,7 @@ function renderMap() {
     line.setAttribute("class", cls);
   }
 
+  renderTorch(game);
   renderGhosts();
   renderGlyphs(game, seen);
   renderWanderer(game);
@@ -198,6 +212,23 @@ function focusGhost(runId) {
   for (const group of layer.querySelectorAll(".ghost-group")) {
     group.classList.toggle("lit", group.getAttribute("data-run") === runId);
   }
+}
+
+/* The torch the character carries. It follows them room to room, and goes out
+ * when the run does. */
+function renderTorch(game) {
+  const layer = MAP.layers.torch;
+  const room = game && MAP.byKey[game.room];
+  if (!room || (game.outcome && game.outcome !== "escaped")) {
+    layer.innerHTML = "";
+    return;
+  }
+  let torch = layer.querySelector(".torch");
+  if (!torch) {
+    torch = make("circle", { r: 168, cx: 0, cy: 0, fill: "url(#torchlight)", class: "torch" });
+    layer.appendChild(torch);
+  }
+  torch.setAttribute("transform", `translate(${cx(room)}, ${cy(room)})`);
 }
 
 /* The Wanderer is always visible, seen room or not -- dodging it is the game. */
