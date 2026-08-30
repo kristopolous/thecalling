@@ -102,7 +102,7 @@ dungeon is made locally:
 | `parser.py` | turns "the caller wants to take the iron sword" into `("take", "sword", None)` |
 | `sessions.py` | binds a browser tab to a phone call by four digit code; stores past runs |
 | `server.py` | stdlib HTTP server, static files, and the SSE stream to the page |
-| `main.py` | the Guava agent: handlers, narration, and the entry point |
+| `main.py` | the Guava agent: handlers, narration, the reconnect supervisor, entry point |
 | `static/` | the map page |
 
 The Guava side is deliberately thin. `on_action_request` parses what the caller

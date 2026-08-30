@@ -357,8 +357,10 @@ function renderRail() {
   el("code").textContent = claimed ? state.code : "····";
   el("code").classList.toggle("pending", !claimed);
   el("hint").innerHTML = !state.phone_ready
-    ? "The phone line is not running — play with the box below."
-    : state.connected
+    ? "The phone line is not running — type your commands below instead."
+    : !state.line_live
+      ? "Reconnecting to the phone line — type your commands below meanwhile."
+      : state.connected
       ? "You are connected. Say <em>look</em> to get your bearings."
       : claimed
         ? `from the number ending <b>${state.code}</b> — we will know it is you.`

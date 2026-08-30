@@ -31,7 +31,7 @@ MAP_PAYLOAD = {
 }
 
 # main.py fills these in so the page can tell the player who to call.
-CALL_INFO = {"number": None, "ready": False}
+CALL_INFO = {"number": None, "ready": False, "live": False}
 COMMAND_HOOK = None  # set by main.py: (session, text) -> narration
 
 
@@ -126,6 +126,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _env(self):
         return {"call_number": CALL_INFO["number"], "phone_ready": CALL_INFO["ready"],
+                "line_live": CALL_INFO["live"],
                 "ghosts": STORE.ghosts(), "leaderboard": STORE.leaderboard(),
                 "summary": STORE.summary()}
 

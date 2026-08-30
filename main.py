@@ -24,6 +24,34 @@ import server
 from parser import parse, parse_dtmf, describe
 from sessions import STORE
 
+def keep_listening(listen, label, max_backoff=60):
+    """Answer calls forever, reconnecting when the Guava socket drops.
+
+    listen_phone() blocks until the socket dies, and the SDK raises rather than
+    recovering from a "state-lost" close -- which otherwise takes the whole
+    process down and leaves nothing answering the phone. The web server runs on
+    its own thread, so the map stays up while the line comes back.
+    """
+    backoff = 2
+    while True:
+        started = time.time()
+        server.CALL_INFO["live"] = True
+        try:
+            listen()
+            logger.warning("Phone listener for %s returned on its own.", label)
+        except KeyboardInterrupt:
+            raise
+        except Exception as exc:
+            logger.error("Phone listener for %s dropped: %s", label, exc)
+        server.CALL_INFO["live"] = False
+
+        # A listener that survived a while was healthy; only a fast repeat
+        # failure deserves a longer wait.
+        backoff = 2 if time.time() - started > 60 else min(backoff * 2, max_backoff)
+        logger.info("Reconnecting to %s in %ss.", label, backoff)
+        time.sleep(backoff)
+
+
 def load_env():
     """Load .env before anything constructs a Guava client.
 
@@ -371,12 +399,12 @@ def main():
         sys.exit("GUAVA_API_KEY is not set. Put it in .env next to this file.")
 
     if args.channel == "webrtc":
-        agent.listen_webrtc()
+        keep_listening(lambda: agent.listen_webrtc(), "WebRTC")
     else:
         if not args.number:
             sys.exit("No phone number. Set GUAVA_AGENT_NUMBER in .env or pass --number.")
         print(f"  Answering calls on {args.number}\n")
-        agent.listen_phone(args.number)
+        keep_listening(lambda: agent.listen_phone(args.number), args.number)
 
 
 if __name__ == "__main__":
