@@ -4,6 +4,7 @@ Every public method returns narration text meant to be *spoken*, so it avoids
 lists, symbols and anything else that reads badly through a phone.
 """
 
+import random
 import time
 
 from world import (
@@ -12,6 +13,14 @@ from world import (
 )
 
 DIRECTIONS = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}
+
+# The Wanderer: a ghost that drifts the dungeon on its own clock, walking
+# through locked and secret doors alike. Touch it and it throws you somewhere
+# else entirely. (Called "wanderer" throughout, because "ghost" in this code
+# already means the trail of a previous player.)
+WANDERER_START = "whispers"
+WANDERER_PERIOD = 8.0        # seconds between its steps
+WANDERER_SAFE = {"entrance", "vault"}   # never dump the player somewhere it wins the game
 OPPOSITE = {"north": "south", "south": "north", "east": "west", "west": "east"}
 
 
@@ -64,6 +73,10 @@ class GameState:
         self.item_room = {i.key: i.start for i in ITEMS}
         self.monsters_alive = {m.key: True for m in MONSTERS}
         self.monster_awake = {m.key: not m.dormant for m in MONSTERS}
+
+        self.wanderer = WANDERER_START
+        self.wanderer_moved_at = time.time()
+        self.warps = 0
 
         self.opened_secret = False
         self.opened_sarcophagus = False
@@ -156,6 +169,10 @@ class GameState:
             else:
                 parts.append(m.intro)
 
+        near = self.wanderer_is_near()
+        if near:
+            parts.append(f"Something is dragging itself along, close by to the {near}.")
+
         exits = self.visible_exits()
         if exits:
             parts.append(f"Ways out: {_listify(exits)}.")
@@ -230,6 +247,48 @@ class GameState:
         if self.health <= 30 and self.alive:
             parts.append("You are badly hurt.")
         return " ".join(parts)
+
+    def wanderer_is_near(self):
+        """The direction the Wanderer is in, if it is one room away."""
+        for direction, door in EXITS[self.room].items():
+            other = door.b if door.a == self.room else door.a
+            if other == self.wanderer:
+                return direction
+        return None
+
+    def wander(self, now=None):
+        """Give the Wanderer its step.
+
+        Returns None if it is not time yet, an empty string if it moved with no
+        consequence, or the narration if it walked into the player.
+        """
+        if not self.alive:
+            return None
+        now = now or time.time()
+        if now - self.wanderer_moved_at < WANDERER_PERIOD:
+            return None
+        self.wanderer_moved_at = now
+
+        # It goes through locked doors, barred doors and secret doors alike.
+        options = []
+        for door in EXITS[self.wanderer].values():
+            options.append(door.b if door.a == self.wanderer else door.a)
+        if not options:
+            return ""
+        self.wanderer = random.choice(options)
+
+        return self.touch_wanderer() if self.wanderer == self.room else ""
+
+    def touch_wanderer(self):
+        """Contact. The player is thrown somewhere else in the dungeon."""
+        destinations = [k for k in ROOMS_BY_KEY
+                        if k != self.room and k not in WANDERER_SAFE]
+        self.room = random.choice(destinations)
+        self.warps += 1
+        self.dark_turns = 0
+        self._record_path()
+        return ("Something cold walks through you, and the floor is not where you left it. "
+                + self.describe_room())
 
     def _grue(self):
         self.dark_turns += 1
@@ -307,6 +366,9 @@ class GameState:
 
         if self.room == START_ROOM and self.has(GOAL_ITEM):
             return self._win()
+
+        if self.room == self.wanderer:
+            return prefix + parting + self.touch_wanderer()
 
         return prefix + parting + self.describe_room()
 
@@ -507,6 +569,8 @@ class GameState:
             "visited": sorted(self.visited),
             "path": [p[0] for p in self.path],
             "moves": self.moves,
+            "wanderer": self.wanderer,
+            "warps": self.warps,
             "elapsed": round(self.elapsed, 1),
             "outcome": self.outcome,
             "score": self.score(),

@@ -19,6 +19,8 @@
     </div>
     <div class="runs-foot">
       Filled markers have a trail on the map. Hover a run to pick it out.
+      The drifting <b class="wander-key">&#9832;</b> is the Wanderer — it walks through
+      locked doors, and throws you across the dungeon if it touches you.
     </div>
   </aside>
 
@@ -40,6 +42,15 @@
     <section>
       <h2><span class="status-dot" id="dot"></span><span id="link-state">Not on the line</span></h2>
 
+      <div class="dial">
+        <div class="dial-main">
+          <div class="dial-label">Call</div>
+          <div class="dial-number" id="number">—</div>
+          <div class="dial-hint" id="hint">Loading…</div>
+        </div>
+        <div class="dial-code" id="code">····</div>
+      </div>
+
       <form class="claim" id="claim">
         <label for="phone">Your phone number</label>
         <input id="phone" type="tel" inputmode="tel" placeholder="+1 555 010 4477" required>
@@ -47,18 +58,12 @@
         <input id="who" placeholder="optional">
         <button type="submit">Open the dungeon</button>
         <p class="claim-note" id="claim-note">
-          We recognise you by your caller ID, so there is no code to read out.
+          Your last four digits become your dungeon code, so your caller ID alone
+          is enough — there is nothing to read out.
         </p>
       </form>
 
-      <div class="dial" id="dial" hidden>
-        <div>
-          <div class="dial-label">Call</div>
-          <div class="dial-number" id="number">—</div>
-          <div class="dial-hint" id="hint">from the number ending <b id="tail">····</b>.</div>
-        </div>
-        <button class="dial-change" id="change" type="button">change</button>
-      </div>
+      <button class="dial-change" id="change" type="button" hidden>use a different number</button>
     </section>
 
     <div class="verdict" id="verdict" hidden></div>
@@ -80,6 +85,9 @@
         </div>
       </div>
       <div class="bar" id="hpbar"><i style="width:100%"></i></div>
+      <div class="wander-note" id="warps-row" hidden>
+        Thrown by the Wanderer <b id="warps">0</b> times.
+      </div>
     </section>
 
     <section>

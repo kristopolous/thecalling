@@ -41,6 +41,8 @@ class Session:
         self.phone = None           # what the player typed on the page
         self.game = None
         self.transcript = []        # [{"who": "player"|"dungeon", "text": ..., "t": ...}]
+        self.narrator = None        # set while a call is up: speak an unprompted line
+        self.turn = threading.Lock()  # the caller and the Wanderer both move the world
         self._subscribers = []
         self._lock = threading.Lock()
 
@@ -60,6 +62,7 @@ class Session:
 
     def unbind_call(self):
         self.call_id = None
+        self.narrator = None
         self.touched = time.time()
 
     @property
@@ -130,6 +133,7 @@ class SessionStore:
             else:
                 raise RuntimeError("no free session codes")
             session = Session(code)
+            session.start_game()
             self._by_code[code] = session
             return session
 
@@ -143,6 +147,7 @@ class SessionStore:
             session = self._by_code.get(code)
             if session is None:
                 session = Session(code)
+                session.start_game()   # so the map is alive while they dial
                 self._by_code[code] = session
             elif session.connected:
                 # Someone is mid-call on this number; do not pull the rug out.
@@ -158,6 +163,12 @@ class SessionStore:
         if session:
             session.touched = time.time()
         return session
+
+    def live_games(self):
+        """Sessions with a run in progress -- the ones the Wanderer walks in."""
+        with self._lock:
+            sessions = list(self._by_code.values())
+        return [s for s in sessions if s.game is not None and s.game.alive]
 
     def by_call(self, call_id):
         return self._by_call.get(call_id)
@@ -210,7 +221,9 @@ class SessionStore:
     def record_run(self, session):
         """Save a finished (or abandoned) run so later players can race its ghost."""
         game = session.game
-        if game is None or not game.path:
+        if game is None or not game.path or game.moves == 0:
+            # Sessions open a game on page load so the Wanderer has somewhere to
+            # walk. A run nobody actually played does not belong on the board.
             return None
         deepest = game.room
         finished = time.time()

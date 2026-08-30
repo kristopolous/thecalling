@@ -164,6 +164,26 @@ svg.map { width: 100%; height: 100%; max-width: 760px; overflow: visible; }
   100% { r: 26; opacity: 0; }
 }
 
+/* The Wanderer */
+.wanderer { transition: transform 900ms ease-in-out; }
+.wanderer-haze {
+  fill: var(--cold);
+  opacity: 0.09;
+  animation: haze 3.6s ease-in-out infinite;
+}
+@keyframes haze {
+  0%, 100% { opacity: 0.05; }
+  50%      { opacity: 0.16; }
+}
+.wanderer-mark {
+  fill: #cfe6f2;
+  font-size: 15px;
+  font-family: var(--mono);
+  text-anchor: middle;
+  filter: drop-shadow(0 0 7px #6fa8c4aa);
+  animation: haze 3.6s ease-in-out infinite;
+}
+
 .glyph { font-size: 11px; font-family: var(--mono); }
 .glyph.item { fill: var(--moss); }
 .glyph.monster { fill: var(--blood); }
@@ -224,11 +244,12 @@ h2 {
 
 .dial {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
-.dial[hidden] { display: none; }
+.dial-main { min-width: 0; }
 
 .dial-label {
   color: var(--dim);
@@ -237,8 +258,18 @@ h2 {
   text-transform: uppercase;
 }
 
+.dial-code {
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  text-shadow: 0 0 22px #f2a93b3d;
+  white-space: nowrap;
+}
+.dial-code.pending { color: var(--dimmer); text-shadow: none; }
+
 .dial-number {
-  font-size: 25px;
+  font-size: 22px;
   line-height: 1.25;
   letter-spacing: 0.01em;
   color: var(--amber);
@@ -261,6 +292,7 @@ h2 {
   cursor: pointer;
 }
 .dial-change:hover { color: var(--dim); border-color: var(--dim); }
+.dial-change[hidden] { display: none; }
 
 .status-dot {
   display: inline-block;
@@ -300,6 +332,15 @@ h2 {
 }
 .bar.hurt > i { background: var(--amber); }
 .bar.dying > i { background: var(--blood); }
+
+.wander-note {
+  margin-top: 11px;
+  color: var(--cold);
+  font-size: 11px;
+}
+.wander-note[hidden] { display: none; }
+.wander-note b { color: var(--bone); font-weight: 400; }
+.wander-key { color: #cfe6f2; font-weight: 400; }
 
 /* Inventory */
 

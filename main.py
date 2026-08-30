@@ -14,6 +14,8 @@ import logging
 import os
 import re
 import sys
+import threading
+import time
 
 import guava
 from guava import Agent, Field, SuggestedAction, logging_utils
@@ -82,7 +84,8 @@ def run_command(session, command, spoken_as=None):
         session.start_game()
 
     session.say("player", spoken_as or describe(command))
-    text = session.game.execute(*command)
+    with session.turn:
+        text = session.game.execute(*command)
     session.say("dungeon", text)
 
     if not session.game.alive:
@@ -125,6 +128,29 @@ def handle_text(session, text):
 def narrate(call, text):
     call.send_instruction(
         f'Read this to the player word for word, and add nothing of your own: "{text}"')
+
+
+def wander_loop(period=1.0):
+    """Walk the Wanderer through every live dungeon, on its own clock.
+
+    This runs whether or not the player is saying anything, so the map stays
+    alive between turns -- and so the thing can find you while you dither.
+    """
+    while True:
+        time.sleep(period)
+        for session in STORE.live_games():
+            try:
+                with session.turn:
+                    event = session.game.wander()
+                if event is None:
+                    continue            # not its turn yet
+                if event:
+                    session.say("dungeon", event)
+                    if session.narrator:
+                        session.narrator(event)
+                session.publish()
+            except Exception:
+                logger.exception("the Wanderer stumbled")
 
 
 # ------------------------------------------------------------------ handlers
@@ -185,10 +211,14 @@ def begin(call: guava.Call, session):
         "commands": ["go north", "go south", "go east", "go west", "look", "what am I carrying",
                      "take the sword", "drop the crown", "examine the statue",
                      "attack the skeleton", "open the sarcophagus", "go back", "play again"],
+        "the_wanderer": ("A ghost wanders the dungeon on its own. It walks through locked doors. "
+                         "If it touches the player it throws them somewhere else entirely. "
+                         "The player may hear it dragging in the next room."),
         "keypad": {"2": "north", "4": "west", "6": "east", "8": "south", "5": "look",
                    "1": "inventory", "0": "help"},
         "goal": "Find the Crown of Kaldrath and carry it back out through the Entrance Hall.",
     })
+    session.narrator = lambda text: narrate(call, text)
     call.set_persona(agent_purpose=NARRATION_RULES)
     call.send_instruction(NARRATION_RULES)
 
@@ -310,6 +340,7 @@ def main():
     server.COMMAND_HOOK = handle_text
     server.CALL_INFO["number"] = args.number if args.channel == "phone" else None
     server.CALL_INFO["ready"] = args.channel != "none"
+    threading.Thread(target=wander_loop, daemon=True, name="wanderer").start()
     server.serve(args.port)
     print(f"\n  The Vault of Kaldrath is open at http://localhost:{args.port}\n")
 

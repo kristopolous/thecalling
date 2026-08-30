@@ -76,7 +76,7 @@ function drawBase() {
   MAP.byKey = byKey;
 
   const layers = {};
-  for (const name of ["doors", "rooms", "ghosts", "glyphs", "you"]) {
+  for (const name of ["doors", "rooms", "ghosts", "glyphs", "wanderer", "you"]) {
     layers[name] = make("g", { class: `layer-${name}` });
     svg.appendChild(layers[name]);
   }
@@ -146,6 +146,7 @@ function renderMap() {
 
   renderGhosts();
   renderGlyphs(game, seen);
+  renderWanderer(game);
   renderYou(game);
 }
 
@@ -193,6 +194,28 @@ function focusGhost(runId) {
   for (const group of layer.querySelectorAll(".ghost-group")) {
     group.classList.toggle("lit", group.getAttribute("data-run") === runId);
   }
+}
+
+/* The Wanderer is always visible, seen room or not -- dodging it is the game. */
+function renderWanderer(game) {
+  const layer = MAP.layers.wanderer;
+  const room = game && game.wanderer && MAP.byKey[game.wanderer];
+  if (!room || (game.outcome && game.outcome !== "escaped")) {
+    layer.innerHTML = "";
+    return;
+  }
+
+  let group = layer.querySelector(".wanderer");
+  if (!group) {
+    group = make("g", { class: "wanderer" });
+    group.appendChild(make("circle", { r: 15, cx: 0, cy: 0, class: "wanderer-haze" }));
+    // Drawn at the origin and moved with a transform, because a transform is
+    // the only thing an SVG <text> will animate smoothly along.
+    group.appendChild(make("text", { x: 0, y: 5, class: "wanderer-mark" }, "\u2668"));
+    layer.appendChild(group);
+  }
+  // Sit in the room's upper corner so it never hides the player's marker.
+  group.setAttribute("transform", `translate(${cx(room) + 21}, ${cy(room) - 19})`);
 }
 
 function renderGlyphs(game, seen) {
@@ -262,24 +285,29 @@ function renderRail() {
 
   const claimed = Boolean(state.phone);
   el("claim").hidden = claimed;
-  el("dial").hidden = !claimed;
+  el("change").hidden = !claimed;
   el("dot").className = `status-dot${state.connected ? " live" : ""}`;
   el("link-state").textContent = state.connected
     ? "On the line" : claimed ? "Waiting for your call" : "Not on the line";
 
-  if (claimed) {
-    el("number").textContent = state.call_number || "phone line offline";
-    el("tail").textContent = state.code;
-    el("hint").innerHTML = state.connected
+  // The number to call is always on show; the code appears once we know which
+  // phone is yours, because the code IS the tail of that number.
+  el("number").textContent = state.call_number || "phone line offline";
+  el("code").textContent = claimed ? state.code : "····";
+  el("code").classList.toggle("pending", !claimed);
+  el("hint").innerHTML = !state.phone_ready
+    ? "The phone line is not running — play with the box below."
+    : state.connected
       ? "You are connected. Say <em>look</em> to get your bearings."
-      : (state.phone_ready
-          ? `from the number ending <b>${state.code}</b> — we will know it is you.`
-          : "The phone line is not running — play with the box below.");
-  }
+      : claimed
+        ? `from the number ending <b>${state.code}</b> — we will know it is you.`
+        : "Put your number in below, then call.";
 
   if (game) {
     el("hp").textContent = game.health;
     el("score").textContent = game.score;
+    el("warps").textContent = game.warps;
+    el("warps-row").hidden = !game.warps;
     const pct = Math.max(0, game.health) / game.max_health * 100;
     const bar = el("hpbar");
     bar.className = `bar${pct <= 30 ? " dying" : pct <= 60 ? " hurt" : ""}`;

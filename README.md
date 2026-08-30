@@ -13,6 +13,14 @@ what you have to beat.
 The dungeon is the Vault of Kaldrath: 22 rooms, four monsters, ten items, a locked
 vault and one Crown. Find the Crown and carry it back out of the Entrance Hall.
 
+Something else is down there too. **The Wanderer** is a ghost that drifts from room
+to room on its own clock, walking straight through locked and secret doors. It is
+always drawn on the map, whether or not you have been to the room it is in, and it
+keeps moving while you stand there thinking. If it touches you it throws you
+somewhere else in the dungeon entirely — which can be a shortcut or a death
+sentence, depending on whether you brought a light. Stand next to it and you will
+hear it dragging in the next room.
+
 ## Running it
 
 ```bash
@@ -85,6 +93,7 @@ dungeon is made locally:
 | File | Job |
 |---|---|
 | `world.py` | the dungeon — rooms on a 5×5 grid, items, monsters, doors |
+| `engine.py` | …including the Wanderer, which moves on wall-clock time, not turns |
 | `engine.py` | one `GameState` per run; turns, damage, darkness, win and death |
 | `parser.py` | turns "the caller wants to take the iron sword" into `("take", "sword", None)` |
 | `sessions.py` | binds a browser tab to a phone call by four digit code; stores past runs |
