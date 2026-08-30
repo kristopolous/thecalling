@@ -60,8 +60,10 @@ silently — `on_call_start` binds and starts narrating immediately.
 If your number is withheld, or you called before filling the page in, it falls back
 to asking for those last four digits by voice or keypad.
 
-Hanging up ends your run: it freezes where you stood, stops the clock, and goes on
-the board as `abandoned`. Call back for a fresh one.
+Say `stop` or `end` to finish a run deliberately — it closes the run, puts it on the
+board, and hangs up the call with it. Hanging up without saying so does the same
+thing: the run freezes where you stood, the clock stops, and it goes on the board.
+Call back for a fresh one.
 
 ## Playing
 
@@ -72,6 +74,7 @@ go north / south / east / west      look                what am I carrying
 take the sword                      drop the crown      examine the statue
 attack the skeleton                 open the sarcophagus
 put the charm in the socket         go back             play again
+stop / end                          give up
 ```
 
 The keypad works too, which is handy when the line is noisy:
