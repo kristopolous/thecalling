@@ -283,6 +283,10 @@ function renderYou(game) {
 function renderRail() {
   const game = state && state.game;
 
+  // The typing box is a fallback for running with no phone line at all
+  // (--channel none). When the line is up, this is a game you play by calling.
+  el("compose").hidden = Boolean(state.phone_ready);
+
   const claimed = Boolean(state.phone);
   el("claim").hidden = claimed;
   el("change").hidden = !claimed;

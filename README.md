@@ -47,8 +47,10 @@ Useful flags:
 | `--channel webrtc` | answer browser calls instead, dialable from <https://app.goguava.ai/debug-webrtc> |
 | `--channel none` | no phone at all — play by typing in the box under the map |
 
-There is a text box under the map at all times. It runs the identical engine, so you
-can develop and test the whole game without spending a phone call.
+Run with `--channel none` and a text box appears under the map, running the identical
+engine, so you can develop and test the whole game without spending a phone call.
+Whenever the phone line is up that box stays hidden — this is a game you play by
+calling.
 
 ## Joining
 

@@ -487,6 +487,7 @@ h2 {
 /* Type-in fallback */
 
 .compose { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.compose[hidden] { display: none; }
 .compose input {
   flex: 1;
   background: var(--panel-2);
