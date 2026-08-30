@@ -96,23 +96,25 @@ h1 em { font-style: italic; color: var(--amber); }
 .map-wrap {
   flex: 1;
   min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Block layout, not flex centring: a centred flex item that overflows gets
+     its top and left edges clipped with no way to scroll back to them. */
+  display: block;
   padding: 18px;
-  overflow: auto;              /* only bites on a very short window */
+  overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
 
-/* width AND height, so preserveAspectRatio shrinks the dungeon to fit whichever
-   dimension runs out first. The whole maze is always on screen. */
+/* Kept at a readable size rather than squeezed to fit. Height follows from the
+   viewBox aspect ratio, and the pane scrolls -- app.js keeps the character in
+   view as it moves down the dungeon. */
 svg.map {
   display: block;
   width: 100%;
-  height: 100%;
-  max-width: 860px;
-  max-height: 100%;
+  min-width: 640px;
+  max-width: 780px;
+  height: auto;
+  margin: 0 auto;
   overflow: visible;
 }
 
