@@ -172,7 +172,7 @@ function renderGhosts() {
     }
     if (points.length > 1) {
       group.appendChild(make("polyline", {
-        points: points.join(" "), class: "ghost-trail", stroke: color,
+        points: points.join(" "), class: "ghost-trail", stroke: color, fill: "none",
       }));
     }
     const end = MAP.byKey[ghost.deepest_room];
@@ -258,8 +258,11 @@ function renderYou(game) {
     points.push(`${cx(room)},${cy(room)}`);
   }
   if (points.length > 1) {
+    // fill="none" on the element as well as in the CSS: an unstyled polyline
+    // defaults to a solid black fill, which paints over the whole map.
     layer.insertBefore(
-      make("polyline", { points: points.join(" "), class: "you-trail" }), layer.firstChild);
+      make("polyline", { points: points.join(" "), class: "you-trail", fill: "none" }),
+      layer.firstChild);
   }
 
   const room = MAP.byKey[game.room];

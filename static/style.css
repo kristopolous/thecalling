@@ -118,6 +118,91 @@ svg.map {
   overflow: visible;
 }
 
+.room-plate {
+  fill: #101017;
+  stroke: #1d1d27;
+  stroke-width: 1.5;
+}
+.room-plate.seen { fill: #17161e; stroke: #34323f; }
+.room-plate.here { fill: #241d16; stroke: var(--amber); stroke-width: 2; }
+
+.room-label {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  fill: var(--dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.room-label.seen { fill: #8d8578; }
+.room-label.here { fill: var(--amber); }
+
+.door { stroke: #1d1d27; stroke-width: 7; stroke-linecap: butt; }
+.door.seen { stroke: #34323f; }
+.door.locked { stroke: var(--blood); stroke-dasharray: 3 3; opacity: 0.65; }
+.door.opened { stroke: var(--moss); stroke-dasharray: none; opacity: 0.7; }
+.door.hidden { display: none; }
+
+.ghost-trail { fill: none; stroke-width: 1.6; opacity: 0.42; stroke-linejoin: round; }
+.ghost-mark { opacity: 0.85; }
+.ghost-name {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+.you-trail {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2.2;
+  opacity: 0.3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.you {
+  fill: var(--amber);
+  filter: drop-shadow(0 0 6px #f2a93b90);
+  transition: cx 340ms cubic-bezier(.4, 1.2, .5, 1), cy 340ms cubic-bezier(.4, 1.2, .5, 1);
+}
+.you.dead { fill: var(--blood); filter: none; }
+
+.pulse {
+  fill: none;
+  stroke: var(--amber);
+  transition: cx 340ms ease, cy 340ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse 2.4s ease-out infinite;
+}
+@keyframes pulse {
+  0%   { r: 9; opacity: 0.55; }
+  100% { r: 26; opacity: 0; }
+}
+
+/* The Wanderer */
+.wanderer { transition: transform 900ms ease-in-out; }
+.wanderer-haze {
+  fill: var(--cold);
+  opacity: 0.09;
+  animation: haze 3.6s ease-in-out infinite;
+}
+@keyframes haze {
+  0%, 100% { opacity: 0.05; }
+  50%      { opacity: 0.16; }
+}
+.wanderer-mark {
+  fill: #cfe6f2;
+  font-size: 15px;
+  font-family: var(--mono);
+  text-anchor: middle;
+  filter: drop-shadow(0 0 7px #6fa8c4aa);
+  animation: haze 3.6s ease-in-out infinite;
+}
+
+.glyph { font-size: 11px; font-family: var(--mono); }
+.glyph.item { fill: var(--moss); }
+.glyph.monster { fill: var(--blood); }
+
 /* ---------------------------------------------------------------- the rail */
 
 section {
