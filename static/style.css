@@ -142,12 +142,15 @@ svg.map {
 .door.opened { stroke: var(--moss); stroke-dasharray: none; opacity: 0.7; }
 .door.hidden { display: none; }
 
-.ghost-trail { fill: none; stroke-width: 1.6; opacity: 0.42; stroke-linejoin: round; }
-.ghost-mark { opacity: 0.85; }
 .ghost-name {
   font-family: var(--mono);
   font-size: 8px;
   letter-spacing: 0.04em;
+}
+.ghost-more {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--dimmer);
 }
 
 .you-trail {
@@ -494,10 +497,10 @@ h2 {
   line-height: 1.6;
 }
 
-/* Hovering a run picks its trail out of the tangle on the map. */
-.layer-ghosts.focusing .ghost-group { opacity: 0.12; }
+/* Hovering a run in the list picks its point out of the others. */
+.layer-ghosts .ghost-group { transition: opacity 160ms ease; }
+.layer-ghosts.focusing .ghost-group { opacity: 0.15; }
 .layer-ghosts.focusing .ghost-group.lit { opacity: 1; }
-.layer-ghosts.focusing .ghost-group.lit .ghost-trail { stroke-width: 2.6; opacity: 0.95; }
 
 /* Type-in fallback */
 

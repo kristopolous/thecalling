@@ -156,40 +156,40 @@ function renderGhosts() {
   layer.innerHTML = "";
   const ghosts = (state && state.ghosts) || [];
 
-  ghosts.forEach((ghost, i) => {
-    const color = colorOf(ghost.id);
-    // Nudge each trail off-centre so overlapping routes stay readable.
-    const spread = ((i % 3) - 1) * 7;
-    const group = make("g", { class: "ghost-group", "data-run": ghost.id || "" });
-    layer.appendChild(group);
-    const points = [];
-    let last = null;
-    for (const key of ghost.path) {
-      const room = MAP.byKey[key];
-      if (!room || key === last) continue;
-      last = key;
-      points.push(`${cx(room) + spread},${cy(room) + spread}`);
+  // One point per previous run, marking how far they got. Runs that ended in
+  // the same room stack down the middle of the plate, clear of the item glyphs
+  // along the top and the room name along the bottom.
+  const byRoom = {};
+  for (const ghost of ghosts) (byRoom[ghost.deepest_room] ||= []).push(ghost);
+
+  for (const [roomKey, list] of Object.entries(byRoom)) {
+    const room = MAP.byKey[roomKey];
+    if (!room) continue;
+    const left = PAD + room.x * PITCH;
+    const top = PAD + room.y * PITCH;
+    const flip = room.x >= MAP.width - 1;   // last column reads leftwards
+
+    list.slice(0, 3).forEach((ghost, i) => {
+      const color = colorOf(ghost.id);
+      const y = top + 40 + i * 11;
+      const dotX = flip ? left + CELL - 11 : left + 11;
+      const group = make("g", { class: "ghost-group", "data-run": ghost.id || "" });
+      group.appendChild(make("circle", { cx: dotX, cy: y - 3, r: 3, fill: color }));
+      group.appendChild(make("text", {
+        x: dotX + (flip ? -7 : 7), y,
+        "text-anchor": flip ? "end" : "start",
+        class: "ghost-name", fill: color,
+      }, `${ghost.name.slice(0, 11)} ${clock(ghost.elapsed)}`));
+      layer.appendChild(group);
+    });
+
+    if (list.length > 3) {
+      layer.appendChild(make("text", {
+        x: flip ? left + CELL - 11 : left + 11, y: top + 40 + 3 * 11,
+        "text-anchor": flip ? "end" : "start", class: "ghost-more",
+      }, `+${list.length - 3} more`));
     }
-    if (points.length > 1) {
-      group.appendChild(make("polyline", {
-        points: points.join(" "), class: "ghost-trail", stroke: color, fill: "none",
-      }));
-    }
-    const end = MAP.byKey[ghost.deepest_room];
-    if (!end) return;
-    const g = make("g", { class: "ghost-mark" });
-    g.appendChild(make("circle", {
-      cx: cx(end) + spread, cy: cy(end) + spread, r: 3.5, fill: color,
-    }));
-    // Names on the last column read leftwards, or they run off the map.
-    const flip = end.x >= MAP.width - 1;
-    g.appendChild(make("text", {
-      x: cx(end) + spread + (flip ? -7 : 7), y: cy(end) + spread + 3,
-      "text-anchor": flip ? "end" : "start",
-      class: "ghost-name", fill: color,
-    }, `${ghost.name} ${clock(ghost.elapsed)}`));
-    group.appendChild(g);
-  });
+  }
 }
 
 function focusGhost(runId) {
